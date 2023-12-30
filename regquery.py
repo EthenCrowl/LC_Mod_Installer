@@ -23,7 +23,7 @@ def writer():
     pass
 
 
-def steamexe(val):
+def steamexe(val, x):
     global steam_path
 
     if "steam.exe" in val:
@@ -33,8 +33,8 @@ def steamexe(val):
 
 
 def parse_output(output):
-    steam_path = []
-    lines = output.split('\n')
+    #steam_path = []
+    lines = output.split('  ')
     threads = []
     for line in lines:
         t = threading.Thread(target=steamexe, args=(line, steam_path))
@@ -51,17 +51,17 @@ def main():
     output = powershell_installs()
     ret = []
     ret = parse_output(output)
-    print(output)
-    print(steam_path)
+    print(ret)
+    #print(steam_path[0])
     time.sleep(5)
 
     return ret
-    # list_of_steam_addys = parse_output(output)
+    #list_of_steam_addys = parse_output(output)
     # return list_of_steam_addys
 
-    # print("Steam Addresses: ", list_of_steam_addys)
-    # print("Steam Addresses: ", len(list_of_steam_addys))
-    # return list_of_steam_addys
+    #print("Steam Addresses: ", list_of_steam_addys)
+    #print("Steam Addresses: ", len(list_of_steam_addys))
+    #return list_of_steam_addys
 
 
 if __name__ == "__main__":

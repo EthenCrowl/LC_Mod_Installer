@@ -74,6 +74,5 @@ def check_path(dirname):
 def grab_paths():
     locations = read()
     dirs = clean(locations)
-    #print(dirs)
     time.sleep(1)
     return dirs

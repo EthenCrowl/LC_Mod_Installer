@@ -2,6 +2,7 @@ import os
 import os.path
 import regquery
 import time
+import ctypes
 
 
 #################################################
@@ -36,11 +37,13 @@ def powershell_find_steam():
         return app, r"C:\Program Files (x86)\Steam"
     output = regquery.powershell_installs()
     list_of_steam_addys = regquery.parse_output(output)
+    #print(list_of_steam_addys)
 
     for i in list_of_steam_addys:
         try:
             i = i.replace("\\\\", "\\")
             ifexist = Dir.loop_addys(str(i.replace(r"\steam.exe", "")))
+            print(ifexist)
             if ifexist[0]:  # if exist
                 appinfo = ifexist[1]
                 steam = ifexist[2]  # path return
@@ -49,6 +52,7 @@ def powershell_find_steam():
                 continue
         except:
             continue
+    ctypes.windll.user32.MessageBoxW(0, "Failed to locate Steam! Please contact Ethen.", "Lethal Company Mod Installer", 0)
 
 
 def main():
@@ -60,8 +64,8 @@ def main():
         path = appinfo_locations[1]
 
     return Steam
-    # directory = Dir.dirname()
-    # appinfo = Dir.checker(appinfo)
+        # directory = Dir.dirname()
+        # appinfo = Dir.checker(appinfo)
 
 
 if __name__ == "__main__":
