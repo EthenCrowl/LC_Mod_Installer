@@ -13,7 +13,6 @@ def downloadModInfo(downloadDir):
     print("attempting to download")
     urlretrieve("https://github.com/EthenCrowl/LC_Mod_Installer/releases/download/ModPacks/ModInfo.json",
      os.path.join(downloadDir, "ModInfo.json"))
-    print("Downloading File")
     urlcleanup()
     with open(os.path.join(downloadDir, "ModInfo.json")) as user_file:
         file_contents = user_file.read()
@@ -49,6 +48,7 @@ def checkInstalledVersion(lethalPath):
 
     except:
         print("Unknown error occurred.")
+        ctypes.windll.user32.MessageBoxW(0, "Unknown Error Occurred, please contact DrRedMD", "Lethal Company Mod Installer", 0)
         return
 
 def getLethalPath():
