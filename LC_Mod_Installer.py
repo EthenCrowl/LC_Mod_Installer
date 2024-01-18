@@ -15,9 +15,9 @@ debug = False
 export = False
 
 class MainWindow:
-    def __init__(self, root, installationStatus, lethalPath):
-        #setting passed in variables
-        self.lethalPath = lethalPath
+    def __init__(self, root):
+        self.lethalPath = self.getLethalPath()
+        self.createTemp()
         self.tempPath = os.path.join(self.lethalPath, "temp")
         self.BepInEx = os.path.join(self.lethalPath, "BepInEx")
         #setting title
@@ -36,12 +36,7 @@ class MainWindow:
         self.Main_Label["font"] = ft
         self.Main_Label["fg"] = "#333333"
         self.Main_Label["justify"] = "center"
-        if installationStatus == "UpToDate":
-            self.Main_Label["text"] = "Modpack already up to date."
-        elif installationStatus == "OldVersion":
-            self.Main_Label["text"] = "Previous version installed."
-        elif installationStatus == "NotInstalled":
-            self.Main_Label["text"] = "No Mods Detected"
+        self.Main_Label["text"] = "Searching for game files..."
         self.Main_Label.place(x=30,y=10,width=283,height=53)
 
         self.Install_Button=tk.Button(root)
@@ -50,12 +45,7 @@ class MainWindow:
         self.Install_Button["font"] = ft
         self.Install_Button["fg"] = "#000000"
         self.Install_Button["justify"] = "center"
-        if installationStatus == "UpToDate":
-            self.Install_Button["text"] = "Reinstall"
-        elif installationStatus == "OldVersion":
-            self.Install_Button["text"] = "Update"
-        elif installationStatus == "NotInstalled":
-            self.Install_Button["text"] = "Install"
+        self.Install_Button["text"] = "Waiting..."
         self.Install_Button.place(x=20,y=70,width=91,height=30)
         self.Install_Button["command"] = self.installModpack
 
@@ -77,13 +67,11 @@ class MainWindow:
         Cancel_Button["justify"] = "center"
         Cancel_Button["text"] = "Close"
         Cancel_Button.place(x=220,y=70,width=90,height=30)
-    """
-    def GButton_Install(self):
-        installModpack(self.lethalPath)
+    
+        self.startCheckInstalledVersion()
+    
 
-    def GButton_Uninstall(self):
-        uninstallModpack(self.lethalPath)
-    """
+
     def installModpack(self):
         self.open_secondary_window()
 
@@ -94,6 +82,11 @@ class MainWindow:
             os.remove(os.path.join(self.lethalPath, "doorstop_config.ini"))
             self.Main_Label["text"] = "No Mods Detected"
             self.Install_Button["text"] = "Install"
+    
+    def startCheckInstalledVersion(self):
+        # Download the file in a new thread.
+        Thread(target=self.checkInstalledVersion).start()
+        return
     
     def startDownloadProcess(self):
         # Download the file in a new thread.
@@ -131,6 +124,54 @@ class MainWindow:
         self.Install_Button["text"] = "Reinstall"
         return
     
+    def checkInstalledVersion(self):
+        modPath = self.BepInEx
+        modInfo = downloadModInfo(self.tempPath)
+        try:
+            if os.path.exists(modPath):
+                currentHash = dirhash(modPath, "md5")
+                print(currentHash)
+                if export == True:
+                    newHashDict = {"hash": currentHash}
+                    with open('ModInfo.json', 'w') as fp:
+                        json.dump(newHashDict, fp)
+                modpackHash = modInfo["hash"]
+                if currentHash == modpackHash:
+                    self.Main_Label["text"] = "Modpack already up to date."
+                    self.Install_Button["text"] = "Reinstall"
+                    return
+                else:
+                    self.Main_Label["text"] = "Previous version installed."
+                    self.Install_Button["text"] = "Update"
+                    return
+            else:
+                self.Main_Label["text"] = "No Mods Detected"
+                self.Install_Button["text"] = "Install"
+                return
+
+        except:
+            print("Unknown error occurred.")
+            self.Main_Label["text"] = "Error finding game install"
+            self.Install_Button["text"] = "Panic!"
+            ctypes.windll.user32.MessageBoxW(0, "Unknown Error Occurred, please contact DrRedMD", "Lethal Company Mod Installer", 0)
+            return
+    
+    def createTemp(self):
+        try:
+            os.mkdir(os.path.join(self.lethalPath, "temp"))
+        except:
+            pass
+
+    def getLethalPath(self):
+        try:
+            path = librarypaths.grab_paths()
+        except:
+            pass
+        for x in path:
+            checkPath = os.path.join(x, "Lethal Company")
+            if os.path.exists(checkPath):
+                return checkPath
+    
     def open_secondary_window(self):
         # Create secondary (or popup) window.
         self.secondary_window = tk.Toplevel()
@@ -164,56 +205,13 @@ def downloadModInfo(downloadDir):
     print(file_contents)
     return json.loads(file_contents)
 
-def checkInstalledVersion(lethalPath):
-    modPath = os.path.join(lethalPath, "BepInEx")
-    modInfo = downloadModInfo(os.path.join(lethalPath, 'temp'))
-    try:
-        if os.path.exists(modPath):
-            currentHash = dirhash(modPath, "md5")
-            print(currentHash)
-            if export == True:
-                newHashDict = {"hash": currentHash}
-                with open('ModInfo.json', 'w') as fp:
-                    json.dump(newHashDict, fp)
-            modpackHash = modInfo["hash"]
-            if currentHash == modpackHash:
-                return "UpToDate"
-            else:
-                return "OldVersion"
-        else:
-            return "NotInstalled"
-
-    except:
-        print("Unknown error occurred.")
-        ctypes.windll.user32.MessageBoxW(0, "Unknown Error Occurred, please contact DrRedMD", "Lethal Company Mod Installer", 0)
-        return
-
-def getLethalPath():
-    try:
-        path = librarypaths.grab_paths()
-    except:
-        pass
-    for x in path:
-        checkPath = os.path.join(x, "Lethal Company")
-        if os.path.exists(checkPath):
-            return checkPath
-        
-def createTemp(lethalPath):
-    try:
-        os.mkdir(os.path.join(lethalPath, "temp"))
-    except:
-        pass
-
-def createMainWindow(isInstalled, gamePath):
+def createMainWindow():
     root = tk.Tk()
-    app = MainWindow(root, isInstalled, gamePath)
+    app = MainWindow(root)
     root.mainloop()
            
 def main():
-    gamePath = getLethalPath()
-    createTemp(gamePath)
-    isInstalled = checkInstalledVersion(gamePath)
-    createMainWindow(isInstalled, gamePath)
+    createMainWindow()
 
 if __name__=="__main__":
     main()
