@@ -12,7 +12,7 @@ import tkinter.font as tkFont
 from tkinter import ttk
 
 debug = False
-export = False
+export = True
 
 class MainWindow:
     def __init__(self, root):
@@ -20,11 +20,13 @@ class MainWindow:
         self.createTemp()
         self.tempPath = os.path.join(self.lethalPath, "temp")
         self.BepInEx = os.path.join(self.lethalPath, "BepInEx")
+        self.BoomboxDir = os.path.join(os.path.join(self.BepInEx, "Custom Songs"), "Boombox Music")
+        self.ModDir = os.path.join(self.BepInEx, "plugins")
         #setting title
-        root.title("Lethal Company Mod Installer")
+        root.title("Defective Gaming LC Mods")
         #setting window size
         width=332
-        height=126
+        height=166
         screenwidth = root.winfo_screenwidth()
         screenheight = root.winfo_screenheight()
         alignstr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
@@ -49,6 +51,16 @@ class MainWindow:
         self.Install_Button.place(x=20,y=70,width=91,height=30)
         self.Install_Button["command"] = self.installModpack
 
+        self.Install_Music_Button=tk.Button(root)
+        self.Install_Music_Button["bg"] = "#f0f0f0"
+        ft = tkFont.Font(family='Times',size=10)
+        self.Install_Music_Button["font"] = ft
+        self.Install_Music_Button["fg"] = "#000000"
+        self.Install_Music_Button["justify"] = "center"
+        self.Install_Music_Button["text"] = "Install Music"
+        self.Install_Music_Button.place(x=20,y=110,width=91,height=30)
+        self.Install_Music_Button["command"] = self.installBoombox
+
         Uninstall_Button=tk.Button(root)
         Uninstall_Button["bg"] = "#f0f0f0"
         ft = tkFont.Font(family='Times',size=10)
@@ -69,11 +81,12 @@ class MainWindow:
         Cancel_Button.place(x=220,y=70,width=90,height=30)
     
         self.startCheckInstalledVersion()
-    
-
 
     def installModpack(self):
         self.open_secondary_window()
+
+    def installBoombox(self):
+        self.open_music_window()
 
     def uninstallModpack(self):
         if os.path.exists(os.path.join(self.lethalPath, "BepInEx")):
@@ -91,6 +104,11 @@ class MainWindow:
     def startDownloadProcess(self):
         # Download the file in a new thread.
         Thread(target=self.downloadMods).start()
+        return
+    
+    def startMusicDownloadProcess(self):
+        # Download the file in a new thread.
+        Thread(target=self.downloadMusic).start()
         return
 
     def download_status(self, count, data_size, total_data):
@@ -112,20 +130,36 @@ class MainWindow:
         self.unpackMods()
         return
     
+    def downloadMusic(self):
+        urlretrieve("https://github.com/EthenCrowl/LC_Mod_Installer/releases/download/ModPacks/BoomboxMusic.zip",
+            os.path.join(self.tempPath, "BoomboxPack.zip"), self.download_status)
+        urlcleanup()
+        self.unpackMusic()
+        return
+    
     def unpackMods(self):
-        if os.path.exists(self.BepInEx):
-            shutil.rmtree(self.BepInEx)
+        if os.path.exists(self.ModDir):
+            shutil.rmtree(self.ModDir)
         with zipfile.ZipFile(os.path.join(self.tempPath, "Modpack.zip"), 'r') as zip_ref:
             zip_ref.extractall(self.lethalPath)
-        shutil.rmtree(self.tempPath)
         ctypes.windll.user32.MessageBoxW(0, "Mod Install Successful", "Lethal Company Mod Installer", 0)
         self.secondary_window.destroy()
         self.Main_Label["text"] = "Modpack already up to date."
         self.Install_Button["text"] = "Reinstall"
         return
     
+    def unpackMusic(self):
+        if os.path.exists(self.BoomboxDir):
+            shutil.rmtree(self.BoomboxDir)
+        self.createBoomboxDir()
+        with zipfile.ZipFile(os.path.join(self.tempPath, "BoomboxPack.zip"), 'r') as zip_ref:
+            zip_ref.extractall(self.BoomboxDir)
+        ctypes.windll.user32.MessageBoxW(0, "Boombox Music Install Successful", "Lethal Company Mod Installer", 0)
+        self.music_window.destroy()
+        return
+    
     def checkInstalledVersion(self):
-        modPath = self.BepInEx
+        modPath = self.ModDir
         modInfo = downloadModInfo(self.tempPath)
         try:
             if os.path.exists(modPath):
@@ -159,6 +193,12 @@ class MainWindow:
     def createTemp(self):
         try:
             os.mkdir(os.path.join(self.lethalPath, "temp"))
+        except:
+            pass
+    
+    def createBoomboxDir(self):
+        try:
+            os.mkdir(self.BoomboxDir)
         except:
             pass
 
@@ -195,6 +235,30 @@ class MainWindow:
         self.progressbar.place(x=30, y=60, width=270)
         self.secondary_window.focus()
         self.startDownloadProcess()
+    
+    def open_music_window(self):
+        # Create secondary (or popup) window.
+        self.music_window = tk.Toplevel()
+        self.music_window.title("Download Progress")
+        self.music_window.config(width=300, height=200)
+        width=332
+        height=126
+        screenwidth = self.music_window.winfo_screenwidth()
+        screenheight = self.music_window.winfo_screenheight()
+        alignstr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
+        self.music_window.geometry(alignstr)
+        Secondary_Label=tk.Label(self.music_window)
+        ft = tkFont.Font(family='Times',size=14)
+        Secondary_Label["font"] = ft
+        Secondary_Label["fg"] = "#333333"
+        Secondary_Label["justify"] = "center"
+        Secondary_Label["text"] = "Downloading Music..."
+        Secondary_Label.place(x=30,y=10,width=283,height=53)
+
+        self.progressbar = ttk.Progressbar(self.music_window)
+        self.progressbar.place(x=30, y=60, width=270)
+        self.music_window.focus()
+        self.startMusicDownloadProcess()
 
 def downloadModInfo(downloadDir):
     urlretrieve("https://github.com/EthenCrowl/LC_Mod_Installer/releases/download/ModPacks/ModInfo.json",
